@@ -5,14 +5,15 @@ A learning project to explore Kafka, PostgreSQL, Redis, and event-driven archite
 ## Architecture Overview
 
 This project demonstrates:
-- **Kafka**: Event streaming platform with 3 partitions
-- **Producer**: Sends payment events with user-based partitioning
+- **Kafka**: Event streaming platform with 3 partitions (using KRaft mode, no Zookeeper!)
+- **Producer**: Sends payment events with user-based partitioning via REST API
 - **3 Consumers**: Each in a different consumer group
   - Payment Processor (PostgreSQL)
   - Notification Service (Redis)
-  - Analytics Service (PostgreSQL)
+  - Analytics Service (PostgreSQL - overall & user-level stats)
 - **PostgreSQL**: Stores payment data and analytics
 - **Redis**: Stores notifications
+- **React UI**: Beautiful interface for sending payments & viewing data
 - **Docker Compose**: Orchestrates all services
 
 ## Key Concepts Demonstrated
@@ -36,14 +37,14 @@ This project demonstrates:
 
 | Service | Description |
 |---------|-------------|
-| zookeeper | Kafka coordination service |
-| kafka | Message broker with 3 partitions |
+| kafka | Message broker with 3 partitions (KRaft mode) |
 | postgres | Database for payments and analytics |
 | redis | Cache for notifications |
-| producer | Generates payment events every 2 seconds |
+| producer | Spring Boot app with REST API to send payment events |
 | consumer-processor | Processes payments and stores in PostgreSQL |
 | consumer-notification | Sends notifications stored in Redis |
-| consumer-analytics | Tracks transaction metrics |
+| consumer-analytics | Tracks transaction metrics (overall & user-level) |
+| ui | React UI for interacting with the platform |
 
 ## Getting Started
 
@@ -53,9 +54,27 @@ This project demonstrates:
 
 ### Run the Platform
 
+#### Option 1: Full Docker Setup (Everything in Docker)
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
+
+Then access the UI at `http://localhost:3000`
+
+#### Option 2: UI Locally, Backend in Docker
+First, start backend services:
+```bash
+docker compose up --build --no-deps zookeeper kafka postgres redis producer consumer-processor consumer-notification consumer-analytics
+```
+
+Then run the UI locally:
+```bash
+cd ui
+npm install
+npm start
+```
+
+The UI will be available at `http://localhost:3000`
 
 ### View Logs
 
@@ -82,10 +101,13 @@ docker exec -it postgres psql -U payment -d payment_db
 Useful queries:
 ```sql
 -- View all payments
-SELECT * FROM payments ORDER BY partition, offset;
+SELECT * FROM payments ORDER BY kafka_partition, kafka_offset;
 
 -- View analytics
 SELECT * FROM analytics;
+
+-- View user-level analytics
+SELECT * FROM user_analytics;
 ```
 
 ### Connect to Redis
@@ -103,15 +125,37 @@ KEYS notification:*
 LRANGE user:notifications:user-101 0 -1
 ```
 
+### Test APIs Directly
+
+```bash
+# Send a payment event
+curl -X POST http://localhost:8080/api/payments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user-101",
+    "amount": 123.45,
+    "currency": "USD"
+  }'
+
+# Get all payments
+curl http://localhost:8081/api/payments
+
+# Get overall analytics
+curl http://localhost:8083/api/analytics
+
+# Get user-level analytics
+curl http://localhost:8083/api/analytics/users
+```
+
 ## Stop the Platform
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 To remove volumes (delete all data):
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ## How Partitioning Works
@@ -142,4 +186,3 @@ This ensures:
 - Offset is incremented for each message in the partition
 - Consumers track their own offsets per partition
 - Messages are processed in offset order within each partition
-
