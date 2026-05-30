@@ -130,6 +130,7 @@ services:
       - producer
       - consumer-processor
       - consumer-analytics
+    restart: on-failure
 
 volumes:
   postgres-data:

@@ -16,7 +16,7 @@ const App = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axios.post('http://localhost:8080/api/payments', formData);
+            await axios.post('/api/producer/payments', formData);
             setFormData({ userId: 'user-101', amount: '99.99', currency: 'USD' });
             fetchData();
         } catch (error) {
@@ -28,16 +28,16 @@ const App = () => {
 
     const fetchData = async () => {
         try {
-            console.log('Fetching payments from http://localhost:8081/api/payments');
-            const paymentsRes = await axios.get('http://localhost:8081/api/payments');
+            console.log('Fetching payments from /api/processor/payments');
+            const paymentsRes = await axios.get('/api/processor/payments');
             console.log('Payments response:', paymentsRes.data);
 
-            console.log('Fetching analytics from http://localhost:8083/api/analytics');
-            const analyticsRes = await axios.get('http://localhost:8083/api/analytics');
+            console.log('Fetching analytics from /api/analytics-service/analytics');
+            const analyticsRes = await axios.get('/api/analytics-service/analytics');
             console.log('Analytics response:', analyticsRes.data);
 
-            console.log('Fetching user analytics from http://localhost:8083/api/analytics/users');
-            const userAnalyticsRes = await axios.get('http://localhost:8083/api/analytics/users');
+            console.log('Fetching user analytics from /api/analytics-service/analytics/users');
+            const userAnalyticsRes = await axios.get('/api/analytics-service/analytics/users');
             console.log('User analytics response:', userAnalyticsRes.data);
 
             setPayments(paymentsRes.data);
